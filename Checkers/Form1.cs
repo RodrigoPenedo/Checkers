@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Text.RegularExpressions;
 using System.Linq.Expressions;
+using System.Diagnostics;
 
 namespace Checkers
 {
@@ -29,16 +30,26 @@ namespace Checkers
         private Button[,] Buttons = new Button[8, 8];
         private Piece[,] Board = new Piece[8, 8];
 
+        private PictureBox[] ImagesW = new PictureBox[12];
+        private PictureBox[] ImagesB = new PictureBox[12];
+
         private Color FirstColour = Color.Azure;
         private Color SecondColour = Color.Black;
+        private Color SelectedColour = Color.Orange;
 
+        private Boolean selected = false;
+        private int[] Piece_Selected;
 
         private void Initialize()
         {
             SetUpButtons();
             SetUpColours();
+            SetUpSidePictures();
             IntialPositions();
             ShowPieces();
+            Debug.WriteLine("Done");
+
+            ImagesB[0].BackgroundImage = Properties.Resources.CheckerBlack;
         }
 
         private new void Click(object sender, EventArgs e)
@@ -50,7 +61,58 @@ namespace Checkers
             x = Convert.ToInt16(Btn.Name[3]) - 48;
             y = Convert.ToInt16(Btn.Name[4]) - 48;
 
+            if (selected && Piece_Selected[0] == x && Piece_Selected[1] == y)
+            {
+                selected = false;
+                SetUpColours();
+            }
+            else if (!selected)
+            {
+                if (Board[x, y] != null)
+                {
+                    selected = true;
+                    Piece_Selected = new int[] { x, y };
+                    Buttons[x, y].BackColor = SelectedColour;
+                    Highlightpossiblemoves();
+                }
+            }
+            else if (selected)
+            {
+                int from_x, from_y, to_x, to_y;
+
+                if (Buttons[x, y].BackColor == SelectedColour)
+                {
+                    from_x = Piece_Selected[0];
+                    from_y = Piece_Selected[1];
+
+                    to_x = x;
+                    to_y = y;
+
+                    Board = Piece.Move(Board, from_x, from_y, to_x, to_y);
+                    selected = false;
+
+                    UpdatePiecesTaken();
+                    SetUpColours();
+                    ShowPieces();
+                }
+            }
+
             //Buttons[x, y].BackColor = Buttons[x, y].BackColor == FirstColour ? SecondColour : FirstColour;
+        }
+
+        private void Highlightpossiblemoves()
+        {
+            int x, y;
+
+            List<int[]> PossibleMoves = Piece.GetLegalMoves(Board, Piece_Selected[0], Piece_Selected[1]);
+
+            foreach (int[] Move in PossibleMoves)
+            {
+                x = Move[0];
+                y = Move[1];
+
+                Buttons[x, y].BackColor = SelectedColour;
+            }
         }
 
         private void SetUpButtons()
@@ -85,6 +147,69 @@ namespace Checkers
             }
         }
 
+        private void SetUpSidePictures()
+        {
+            //White Pieces
+            ImagesW[0] = PicWhite0;
+            ImagesW[1] = PicWhite1;
+            ImagesW[2] = PicWhite2;
+            ImagesW[3] = PicWhite3;
+            ImagesW[4] = PicWhite4;
+            ImagesW[5] = PicWhite5;
+            ImagesW[6] = PicWhite6;
+            ImagesW[7] = PicWhite7;
+            ImagesW[8] = PicWhite8;
+            ImagesW[9] = PicWhite9;
+            ImagesW[10] = PicWhite10;
+            ImagesW[11] = PicWhite11;
+
+            //Black Pieces
+            ImagesB[0] = PicBlack0;
+            ImagesB[1] = PicBlack1;
+            ImagesB[2] = PicBlack2;
+            ImagesB[3] = PicBlack3;
+            ImagesB[4] = PicBlack4;
+            ImagesB[5] = PicBlack5;
+            ImagesB[6] = PicBlack6;
+            ImagesB[7] = PicBlack7;
+            ImagesB[8] = PicBlack8;
+            ImagesB[9] = PicBlack9;
+            ImagesB[10] = PicBlack10;
+            ImagesB[11] = PicBlack11;
+        }
+
+        private void UpdatePiecesTaken()
+        {
+            int B = 12;
+            int W = 12;
+
+            foreach (Piece Piece in Board)
+            {
+                if (Piece != null)
+                {
+                    if (Piece.Colour == 0)
+                    {
+                        B--;
+                    }
+                    else if (Piece.Colour == 1)
+                    {
+                        W--;
+                    }
+                }
+            }
+
+            for (int i = 0; W > i ;i++)
+            {
+                ImagesW[i].Visible = true;
+            }
+
+            for (int i = 0; B > i ; i++)
+            {
+                ImagesB[i].Visible = true;
+            }
+
+        }
+
         private void SetUpColours()
         {
            for (int x = 0; x < 8 ; x++)
@@ -96,7 +221,7 @@ namespace Checkers
            }
         }
 
-        private new void IntialPositions()
+        private void IntialPositions()
         {
             //Player 1
             for (int x = 0; x < 3; x++)
@@ -123,7 +248,7 @@ namespace Checkers
             }
         }
 
-        private new void ShowPieces()
+        private void ShowPieces()
         {
             int colour;
 
@@ -131,7 +256,7 @@ namespace Checkers
             {
                 for (int y = 0; y < 8; y++)
                 {
-                    if (Board[x,y] != null)
+                    if (Board[x, y] != null)
                     {
                         colour = Board[x, y].Colour;
 
@@ -140,6 +265,10 @@ namespace Checkers
                             case 0: Buttons[x, y].BackgroundImage = Properties.Resources.CheckerBlack; break;
                             case 1: Buttons[x, y].BackgroundImage = Properties.Resources.CheckerWhite; break;
                         }
+                    }
+                    else
+                    {
+                        Buttons[x, y].BackgroundImage = null;
                     }
                 }
             }
